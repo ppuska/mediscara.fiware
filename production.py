@@ -71,14 +71,10 @@ class Production:
 
         assert isinstance(order_list, list)
 
-        print(new_order_list)
-
         for order in order_list:
-            print(order["value"]["created"]["value"], created, order["value"]["created"]["value"] == created)
             if order["value"]["created"]["value"] == created:
                 new_order_list.remove(order)  # remove the given order
 
-        print(new_order_list)
         entity["order_list"]["value"] = new_order_list  # write back the updated order list
 
         return self.__fiware.replace_entity(entity=entity)  # replace the updated entity

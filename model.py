@@ -18,8 +18,12 @@ class ProductionOrder(ABC):
     created: str = field(init=False)
     active: bool = field(default=False)
 
+    count: int = field(default=1)
+    remaining: int = field(init=False)
+
     def __post_init__(self):
         self.created = datetime.now().strftime("%y.%m.%d %H:%M:%S")
+        self.remaining = self.count
 
     @abstractmethod
     def to_ngsi(self) -> dict:
@@ -29,6 +33,8 @@ class ProductionOrder(ABC):
             "value": {
                 "created": {"type": "Text", "value": self.created},
                 "active": {"type": "Bool", "value": self.active},
+                "count": {"type": "Number", "value": self.count},
+                "remaining": {"type": "Number", "value": self.remaining}
             },
         }
 
@@ -41,6 +47,8 @@ class ProductionOrder(ABC):
         try:
             order.created = entity["value"]["created"]["value"]
             order.active = entity["value"]["active"]["value"]
+            order.count = entity["value"]["count"]["value"]
+            order.remaining = entity["value"]["remaining"]["value"]
 
         except KeyError as error:
             logger.warning("Errors in incoming JSON object: %s", str(entity))
@@ -78,6 +86,7 @@ class CollaborativeOrder(ProductionOrder):
     type = f"{ProductionOrder.type}.collaborative"
 
     incubator_type: str = field(default="")
+    part_type: str = field(default="")
     count: int = field(default=0)
 
     def to_ngsi(self) -> dict:
@@ -85,6 +94,10 @@ class CollaborativeOrder(ProductionOrder):
         ngsi_dict["value"]["incubator_type"] = {
             "type": self.ngsi_type(self.incubator_type),
             "value": self.incubator_type,
+        }
+        ngsi_dict["value"]["part_type"] ={
+            'type': self.ngsi_type(self.part_type),
+            'value': self.part_type
         }
         ngsi_dict["value"]["count"] = {"type": self.ngsi_type(self.count), "value": self.count}
         return ngsi_dict
@@ -95,6 +108,7 @@ class CollaborativeOrder(ProductionOrder):
         try:
             order = super().from_ngsi(entity=entity)
             order.incubator_type = str(entity["value"]["incubator_type"]["value"])
+            order.part_type = str(entity["value"]["part_type"]['value'])
             order.count = int(entity["value"]["count"]["value"])
 
         except KeyError as error:
