@@ -15,23 +15,24 @@ class ProductionOrder(ABC):
 
     type: ClassVar[str] = "order"
 
-    created: str = field(init=False)
+    id: str = field(init=False)  # pylint:disable=invalid-name
+
     active: bool = field(default=False)
 
     count: int = field(default=1)
     remaining: int = field(init=False)
 
     def __post_init__(self):
-        self.created = datetime.now().strftime("%y.%m.%d %H:%M:%S")
+        self.id = f'{self.type}:{datetime.now().strftime("%y.%m.%d %H:%M:%S")}'
         self.remaining = self.count
 
     @abstractmethod
     def to_ngsi(self) -> dict:
         """Converts the class to its NGSi v2 formatted dict representation"""
         return {
+            "id": self.id,
             "type": self.type,
             "value": {
-                "created": {"type": "Text", "value": self.created},
                 "active": {"type": "Bool", "value": self.active},
                 "count": {"type": "Number", "value": self.count},
                 "remaining": {"type": "Number", "value": self.remaining}
@@ -45,7 +46,8 @@ class ProductionOrder(ABC):
         order = cls()
 
         try:
-            order.created = entity["value"]["created"]["value"]
+            order.id = entity["id"]
+            order.type = entity["type"]
             order.active = entity["value"]["active"]["value"]
             order.count = entity["value"]["count"]["value"]
             order.remaining = entity["value"]["remaining"]["value"]
@@ -87,7 +89,6 @@ class CollaborativeOrder(ProductionOrder):
 
     incubator_type: str = field(default="")
     part_type: str = field(default="")
-    count: int = field(default=0)
 
     def to_ngsi(self) -> dict:
         ngsi_dict = super().to_ngsi()
@@ -99,7 +100,6 @@ class CollaborativeOrder(ProductionOrder):
             'type': self.ngsi_type(self.part_type),
             'value': self.part_type
         }
-        ngsi_dict["value"]["count"] = {"type": self.ngsi_type(self.count), "value": self.count}
         return ngsi_dict
 
     @classmethod
@@ -109,7 +109,6 @@ class CollaborativeOrder(ProductionOrder):
             order = super().from_ngsi(entity=entity)
             order.incubator_type = str(entity["value"]["incubator_type"]["value"])
             order.part_type = str(entity["value"]["part_type"]['value'])
-            order.count = int(entity["value"]["count"]["value"])
 
         except KeyError as error:
             logger.warning("Errors in incoming JSON object: %s", str(entity))
@@ -148,88 +147,3 @@ class IndustialOrder(ProductionOrder):
             raise KeyError from error
 
         return order
-
-
-@dataclass
-class Container:
-    """Data class to contain the list of orders"""
-
-    order_list: List[ProductionOrder] = field(default_factory=list)
-
-    type: str = field(init=False)
-
-    def __post_init__(self):
-        if self.order_list:  # list is not empty
-            self.type = f"{self.order_list[0].type}.container"
-
-        else:
-            self.type = "container"
-
-    def to_ngsi(self):
-        """Converts the class to its NGSi v2 formatted dict representation"""
-        result = {}
-        result["id"] = self.type
-
-        result["type"] = self.type
-
-        result["order_list"] = {"type": "StructuredValue", "value": []}
-
-        for item in self.order_list:
-            result["order_list"]["value"].append(item.to_ngsi())
-
-        return result
-
-    @classmethod
-    def from_ngsi(cls, entity: dict):
-        """Attempts to create a container from the NGSi v2 data
-        Args:
-            entity (dict): The entity as a NGSi v2 formatted dict
-        Returns:
-            Container: The created container
-        Raises:
-            KeyError: if the incoming JSON buffer can not be properly parsed
-        """
-        container = cls()
-
-        try:
-            container.type = entity["type"]  # get the type
-            order_list = entity["order_list"]["value"]
-
-        except KeyError as error:
-            logger.warning("Unable to create entity, errors were found in the incoming JSON object")
-            raise KeyError from error
-
-        for item in order_list:
-
-            try:
-                item_type = item["type"]
-
-            except KeyError as error:
-                logger.warning("Errors found in incoming JSON object: %s", str(item))
-                raise KeyError from error
-
-            if item_type == CollaborativeOrder.type:
-                container.order_list.append(CollaborativeOrder.from_ngsi(item))
-
-            elif item_type == IndustialOrder.type:
-                container.order_list.append(IndustialOrder.from_ngsi(item))
-
-            else:
-                raise KeyError(f"Invalid item type: {item_type}")
-
-        return container
-
-    @staticmethod
-    def get_industrial_id():
-        """Returns the ID of an industrial order container"""
-        return f"{IndustialOrder.type}.container"
-
-    @staticmethod
-    def get_collaborative_id():
-        """Returns the ID of a collaborative order container"""
-        return f"{CollaborativeOrder.type}.container"
-
-    @property
-    def container_id(self):
-        """Returns the id of the container"""
-        return self.type

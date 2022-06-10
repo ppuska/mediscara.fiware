@@ -2,17 +2,11 @@
 
 import logging
 from enum import Enum
+from typing import List
 
 from . import ENTITY_ID
 from .fiware import FIWARE
 from .model import Container, ProductionOrder
-
-
-class DESTINATION(Enum):
-    """Enum clas to store the porrible message destinations"""
-
-    ROBOTIC = f"{ENTITY_ID}.robotic"
-    COLLABORATIVE = f"{ENTITY_ID}.collaborative"
 
 
 class Production:
@@ -33,25 +27,9 @@ class Production:
         Returns:
             bool: Whether the operation was successful or not
         """
-        # First check if the entity's container already exists
-        container = Container(order_list=[order])
+        return self.__fiware.create_entity(order.to_ngsi())
 
-        ocb_container_entity = self.__fiware.get_entity(entity_id=container.container_id)
-
-        if ocb_container_entity is None:
-            # If the container does not exist in the OCB create it
-            logging.info("Container does not exist, creating it...")
-            return self.__fiware.create_entity(entity=container.to_ngsi())
-
-        # the container exists in the ocb
-        container = Container.from_ngsi(ocb_container_entity)
-
-        # append the new order to the container
-        container.order_list.append(order)
-
-        return self.__fiware.update_entity_append(container.to_ngsi())
-
-    def load_production_orders(self, container_id: str) -> Container:
+    def load_production_orders(self, container_id: str) -> List[ProductionOrder]:
 
         entity = self.__fiware.get_entity(entity_id=container_id)
 
@@ -78,3 +56,6 @@ class Production:
         entity["order_list"]["value"] = new_order_list  # write back the updated order list
 
         return self.__fiware.replace_entity(entity=entity)  # replace the updated entity
+
+    def update_production_orders(self, container: Container):
+        """Updates the production orders based on the container"""

@@ -2,8 +2,11 @@
 
 import logging
 from enum import Enum
+from urllib import response
 
 import requests
+
+from editor.fiware.model import ProductionOrder
 
 
 class StatusCodes(Enum):
@@ -73,6 +76,18 @@ class FIWARE:
             return None
 
         return response.json()
+
+    def get_entities_with_type(self, entity_type: str):
+        """Lists all the entities with the given type"""
+
+        params = {
+            'options': 'keyValues',
+            'type': entity_type
+        }
+
+        response = requests.get(f"{self.__server_url}/v2/entities", params=params)
+
+
 
     def update_entity(self, entity_id: str, attrs: dict) -> bool:
         """Updates the entity with the given id in the OCB
