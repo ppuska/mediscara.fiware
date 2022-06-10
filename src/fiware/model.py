@@ -23,7 +23,7 @@ class ProductionOrder(ABC):
     remaining: int = field(init=False)
 
     def __post_init__(self):
-        self.id = f'{self.type}:{datetime.now().strftime("%y.%m.%d %H:%M:%S")}'
+        self.id = f'{self.type}:{datetime.now().strftime("%y_%m_%d_%H_%M_%S")}'
         self.remaining = self.count
 
     @abstractmethod
@@ -32,11 +32,9 @@ class ProductionOrder(ABC):
         return {
             "id": self.id,
             "type": self.type,
-            "value": {
-                "active": {"type": "Bool", "value": self.active},
-                "count": {"type": "Number", "value": self.count},
-                "remaining": {"type": "Number", "value": self.remaining}
-            },
+            "active": {"type": "Bool", "value": self.active},
+            "count": {"type": "Number", "value": self.count},
+            "remaining": {"type": "Number", "value": self.remaining},
         }
 
     @classmethod
@@ -48,9 +46,9 @@ class ProductionOrder(ABC):
         try:
             order.id = entity["id"]
             order.type = entity["type"]
-            order.active = entity["value"]["active"]["value"]
-            order.count = entity["value"]["count"]["value"]
-            order.remaining = entity["value"]["remaining"]["value"]
+            order.active = entity["active"]["value"]
+            order.count = entity["count"]["value"]
+            order.remaining = entity["remaining"]["value"]
 
         except KeyError as error:
             logger.warning("Errors in incoming JSON object: %s", str(entity))
@@ -92,11 +90,11 @@ class CollaborativeOrder(ProductionOrder):
 
     def to_ngsi(self) -> dict:
         ngsi_dict = super().to_ngsi()
-        ngsi_dict["value"]["incubator_type"] = {
+        ngsi_dict["incubator_type"] = {
             "type": self.ngsi_type(self.incubator_type),
             "value": self.incubator_type,
         }
-        ngsi_dict["value"]["part_type"] ={
+        ngsi_dict["part_type"] = {
             'type': self.ngsi_type(self.part_type),
             'value': self.part_type
         }
@@ -107,8 +105,8 @@ class CollaborativeOrder(ProductionOrder):
 
         try:
             order = super().from_ngsi(entity=entity)
-            order.incubator_type = str(entity["value"]["incubator_type"]["value"])
-            order.part_type = str(entity["value"]["part_type"]['value'])
+            order.incubator_type = str(entity["incubator_type"]["value"])
+            order.part_type = str(entity["part_type"]['value'])
 
         except KeyError as error:
             logger.warning("Errors in incoming JSON object: %s", str(entity))

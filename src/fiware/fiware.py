@@ -2,11 +2,8 @@
 
 import logging
 from enum import Enum
-from urllib import response
 
 import requests
-
-from editor.fiware.model import ProductionOrder
 
 
 class StatusCodes(Enum):
@@ -58,7 +55,7 @@ class FIWARE:
         if response.status_code == StatusCodes.CREATED.value:
             return True
 
-        logging.debug("Could not create new entity (response: %s)", response.content)
+        logging.info("Could not create new entity '%s' (response: %s)", entity, response.content)
         return False
 
     def get_entity(self, entity_id: str) -> dict or None:
@@ -81,11 +78,12 @@ class FIWARE:
         """Lists all the entities with the given type"""
 
         params = {
-            'options': 'keyValues',
             'type': entity_type
         }
 
         response = requests.get(f"{self.__server_url}/v2/entities", params=params)
+
+        return response.json()
 
 
 

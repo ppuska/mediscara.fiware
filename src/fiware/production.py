@@ -1,12 +1,9 @@
 """Module for the managerial production messages"""
 
-import logging
-from enum import Enum
-from typing import List
+from typing import List, Type
 
-from . import ENTITY_ID
 from .fiware import FIWARE
-from .model import Container, ProductionOrder
+from .model import ProductionOrder
 
 
 class Production:
@@ -29,33 +26,23 @@ class Production:
         """
         return self.__fiware.create_entity(order.to_ngsi())
 
-    def load_production_orders(self, container_id: str) -> List[ProductionOrder]:
+    def load_production_orders(self, order: Type[ProductionOrder]) -> List[ProductionOrder]:
 
-        entity = self.__fiware.get_entity(entity_id=container_id)
+        entities = self.__fiware.get_entities_with_type(order.type)
 
-        if entity is None:
-            container = Container()
-            container.type = container_id
-            return container
+        if entities is None:
+            return []
 
-        return Container.from_ngsi(entity)
+        orders = []
 
-    def delete_production_order(self, container_id: str, created: str) -> bool:
+        for entity in entities:
+            orders.append(order.from_ngsi(entity))
 
-        entity = self.__fiware.get_entity(entity_id=container_id)
+        return orders
 
-        order_list = entity["order_list"]["value"]
-        new_order_list = order_list
+    def delete_production_order(self, order: ProductionOrder) -> bool:
 
-        assert isinstance(order_list, list)
+        return self.__fiware.delete_entity(order.id)
 
-        for order in order_list:
-            if order["value"]["created"]["value"] == created:
-                new_order_list.remove(order)  # remove the given order
-
-        entity["order_list"]["value"] = new_order_list  # write back the updated order list
-
-        return self.__fiware.replace_entity(entity=entity)  # replace the updated entity
-
-    def update_production_orders(self, container: Container):
+    def update_production_orders(self):
         """Updates the production orders based on the container"""
