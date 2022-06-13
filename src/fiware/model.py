@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import ClassVar, List
+from typing import ClassVar
 
 logger = logging.getLogger("django")
 
@@ -121,24 +121,21 @@ class IndustialOrder(ProductionOrder):
 
     type = f"{ProductionOrder.type}.industrial"
 
-    incubator_type: str = field(default="")
+    housing_type: str = field(default="")
     count: int = field(default=0)
 
     def to_ngsi(self) -> dict:
-        return {
-            "type": self.type,
-            "value": {
-                "incubator_type": {"type": self.ngsi_type(self.incubator_type), "value": self.incubator_type},
-                "count": {"type": self.ngsi_type(self.count), "value": self.count},
-            },
-        }
+        ngsi_dict = super().to_ngsi()
+        ngsi_dict['type'] = self.type
+        ngsi_dict['housing_type'] = {"type": self.ngsi_type(self.housing_type), "value": self.housing_type}
+
+        return ngsi_dict
 
     @classmethod
     def from_ngsi(cls, entity: dict):
-        order = cls()
         try:
-            order.incubator_type = str(entity["value"]["incubator_type"]["value"])
-            order.count = int(entity["value"]["count"]["value"])
+            order = super().from_ngsi(entity=entity)
+            order.housing_type = str(entity["housing_type"]["value"])
 
         except KeyError as error:
             logger.warning("Errors in incoming JSON object: %s", str(entity))
