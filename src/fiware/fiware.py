@@ -1,5 +1,6 @@
 """Module for storing interface classes"""
 
+from email import header
 import logging
 from enum import Enum
 
@@ -100,7 +101,27 @@ class FIWARE:
         if response.status_code == StatusCodes.NO_CONTENT.value:
             return True
 
-        logging.debug("Unable to update entity '%s'. (response %s)", entity_id, response.content)
+        logging.info("Unable to update entity '%s'. (response %s)", entity_id, response.content)
+        return False
+
+    def update_entity_attribute(self, entity_id: str, attr: str, value: str):
+        """Updates the selected attribute in the entity with the given id"""
+
+        headers = {
+            "Content-Type": 'text/plain',
+        }
+
+        assert isinstance(value, str)
+
+        response = requests.put(f"{self.__server_url}/v2/entities/{entity_id}/attrs/{attr}/value",
+                                headers=headers,
+                                data=value
+                                )
+
+        if response.status_code == StatusCodes.NO_CONTENT.value:
+            return True
+
+        logging.info("Unable to update attribute '%s' of entity '%s'. (response %s)", attr, entity_id, response.content)
         return False
 
     def replace_entity(self, entity: dict) -> bool:
@@ -132,7 +153,7 @@ class FIWARE:
         if response.status_code == StatusCodes.NO_CONTENT.value:
             return True
 
-        logging.debug("Unable to update entity. (response %s)", response.content)
+        logging.info("Unable to update entity. (response %s)", response.content)
         return False
 
     def delete_entity(self, entity_id: str):
@@ -147,5 +168,5 @@ class FIWARE:
         if response.status_code == StatusCodes.NO_CONTENT.value:
             return True
 
-        logging.debug("Unable to delete entity '%s'. (response %s'", entity_id, response.content)
+        logging.info("Unable to delete entity '%s'. (response %s'", entity_id, response.content)
         return False

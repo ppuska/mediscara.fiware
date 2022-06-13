@@ -44,5 +44,14 @@ class Production:
 
         return self.__fiware.delete_entity(order.id)
 
-    def update_production_orders(self):
-        """Updates the production orders based on the container"""
+    def update_production_order_remaining(self, new_order: ProductionOrder):
+        """Updates the production remaining attribute of the given order, to the order's new value"""
+
+        return self.__fiware.update_entity_attribute(new_order.id, attr="remaining", value=str(new_order.remaining))
+
+    def set_active(self, order: ProductionOrder, active: bool):
+        """Sets the active value of the order in the OCB to the given value"""
+
+        assert isinstance(str(active), str)
+
+        return self.__fiware.update_entity_attribute(entity_id=order.id, attr="active", value=str(active))

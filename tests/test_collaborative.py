@@ -23,4 +23,8 @@ def test_create_read_delete(connector):
 
     assert connector.load_production_orders(order=CollaborativeOrder) is not None
 
+    assert connector.update_production_order_remaining(order) is True
+
+    assert connector.set_active(order=order, active=True) is True
+
     assert connector.delete_production_order(order=order) is True
