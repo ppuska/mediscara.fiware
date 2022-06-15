@@ -32,9 +32,9 @@ class ProductionOrder(ABC):
         return {
             "id": self.id,
             "type": self.type,
-            "active": {"type": "Bool", "value": self.active},
-            "count": {"type": "Number", "value": self.count},
-            "remaining": {"type": "Number", "value": self.remaining},
+            "active": {"type": self.ngsi_type(self.active), "value": self.active},
+            "count": {"type": self.ngsi_type(self.count), "value": self.count},
+            "remaining": {"type": self.ngsi_type(self.remaining), "value": self.remaining},
         }
 
     @classmethod

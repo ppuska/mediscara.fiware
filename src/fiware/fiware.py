@@ -1,6 +1,5 @@
 """Module for storing interface classes"""
 
-from email import header
 import logging
 from enum import Enum
 
@@ -41,6 +40,10 @@ class FIWARE:
 
         except requests.exceptions.ConnectionError as error:
             logging.error("Failed to establish connection")
+            raise ConnectionError from error
+
+        except requests.exceptions.InvalidSchema as error:
+            logging.error(error)
             raise ConnectionError from error
 
     def create_entity(self, entity: dict) -> bool:
